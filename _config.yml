@@ -1,0 +1,13 @@
+# Site settings
+title: Dig Team
+email: digteam@xxx.com
+description: vulnerability digging DVE
+baseurl: "" # the subpath of your site, e.g. /blog/
+url: "http://digteam.github.com" # the base hostname & protocol for your site
+twitter_username: Digteam
+github_username:  digteam
+
+# Build settings
+highlighter: true
+markdown: kramdown
+img_url: http://digteam.github.com/images
