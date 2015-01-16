@@ -130,11 +130,12 @@ code {
     font-size: 15px;
     border: 1px solid $grey-color-light;
     border-radius: 3px;
-    background-color: #eef;
+    background-color: #f7f7f9;
 }
 
 code {
     padding: 1px 5px;
+    font-family: Menlo,Monaco,Consolas,"Droid Sans Mono","Courier New",monospace;
 }
 
 pre {

@@ -8,6 +8,13 @@ twitter_username: Digteam
 github_username:  digteam
 
 # Build settings
+permalink: /:year/:month/:day/:title
 highlighter: pygments
 markdown: kramdown
+kramdown:
+  auto_ids: true,
+  footnote_nr: 1
+  entity_output: as_char
+  toc_levels: 1..6 
+  use_coderay: false
 img_url: http://digteam.github.com/images
