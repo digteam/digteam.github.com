@@ -1,9 +1,10 @@
 ---
-layout: post
-title:  "完备性上的小原则"
-date:   2015-01-15 18:50:58
-categories: jekyll update
-author: pjf
+layout:     post
+title:      "完备性上的小原则"
+date:       2013-09-30 12:13:58
+categories: [virtualization]
+tags:       [BluePill, Vmx]
+author:     pjf
 ---
 
 &emsp;&emsp;多年没写博客了，就先捡点剩菜剩饭炒炒，没啥营养，同学们可以随便看看。另外就是文笔真心烂，阅读的同学们需要点耐心J。
@@ -13,20 +14,20 @@ New Blue Pill作为一个驱动程序加载后，沉淀下去，利用硬件虚�
 完备性上的小原则
 
 {:.center}
-![New Blue Pill内存保护](/images/2015-01-15-new_blue_pill.jpg)  
+![New Blue Pill内存保护](/images/2013-09-30-new_blue_pill.jpg)  
 图1. New Blue Pill内存保护
  
 &emsp;&emsp;这样的虚拟内存保护有多大作用呢，因为客户机和虚拟机监视器的物理内存资源并没有有效隔离，不符合原则，所以效果只能说是聊胜于无。客户机内的软件可以轻松访问虚拟机监视器的物理内存，篡改虚拟机监视器代码数据乃至完全突破使客户机原操作系统重回Host环境（如VMX Root）运行。下面的内容阅读前需要预先熟悉一些Intel64体系结构、Windows内核上的一些知识。
 先设计一个非常简单的物理内存访问库（工作于Win7 X64系统），原理为修改事先分配的NonPagedPool页所对应的PTE，使该线性地址可以用来依次映射我们指定的物理内存页面。注意x64系统如此分配一般获得一个在大页面中的线性地址，所以需要重新映射一下，以便得到可供修改的4K页对应的PTE；另外要注意的是这个映射方案是演示用的、很粗糙的，不应随意用该PTE去映射已被以NonCached等类型映射的物理空间，如外设的IO映射地址空间。
 
-{% highlight ruby %}
+{% highlight c %}
 typedef struct _MAP_STRUCT {
     PVOID OrigPage;
     PVOID MapPage;
     PMDL Mdl;
     PHYSICAL_ADDRESS MapPagePhys;
 } MAP_STRUCT, *PMAP_STRUCT;
- 
+
 #define VIRTUAL_ADDRESS_BITS 48
 #define VIRTUAL_ADDRESS_MASK ((((ULONG_PTR)1) << VIRTUAL_ADDRESS_BITS) - 1)
  
@@ -62,7 +63,7 @@ typedef struct _MMPTE {
  
 #define MiGetPteAddress(va) \
     ((PMMPTE)(((((ULONG_PTR)(va) & VIRTUAL_ADDRESS_MASK) >> PTI_SHIFT) << PTE_SHIFT) + PTE_BASE))
- 
+
 NTSTATUS
 InitMapPage(
     OUT PMAP_STRUCT MapHandle
@@ -172,7 +173,7 @@ FiniMapPage(
 
 &emsp;&emsp;然后下面的程序片段基于这个访问库，搜索当前Intel Core i3 CPU所关联的VMCS，顺便打印了其中的一些由New Blue Pill事先填充的数据：
  
-{% highlight ruby %}
+{% highlight c %}
 {
     ……
  
@@ -249,7 +250,7 @@ ExFreePool(PhysicalMemoryBlock);
 
 {:.center}
 程序debug输出如图2。  
-![搜索当前CPU VMCS](/images/2015-01-15-debug.jpg)  
+![搜索当前CPU VMCS](/images/2013-09-30-debug.jpg)  
 图2. 搜索当前CPU VMCS
  
 &emsp;&emsp;拿到这些信息，怎么制作“Red Pill”跳出被硬件虚拟化监控的状态就非常简单了，举个例子——比如首先可以通过Host CR3查找、修改Host页表映射加入我们的代码物理页（当然也可以直接利用Host中已经被映射的物理页面）；随后通过修改VmxVmexitHandler（图中VMCS Host RIP所指）代码或者直接替换每个VMCS的Host RIP，在合适的VM Exit时获得Host上的运行权；最后利用获得的信息修改CPU各寄存器并转移到正确位置执行。具体代码就不贴了，有兴趣的同学可以试试。完成了这些，也就突破了nbp的限制。故以nbp的需求而言，它至少要管理完整的客户页表结构（构建Shadow Page Table或使用EPT/NPT）。
